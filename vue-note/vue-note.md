@@ -961,5 +961,187 @@ ES6 模块的设计思想是尽量的静态化，使得编译时就能确定模�
 # 六、Node
 ## 6.1、linux环境搭建
 ## 6.2、创建httpserver
+简单的做一个httpserver服务
+node.js是遵循common语法规范的，同时也支持ES6的大部分语法
+首先建立一个User.js文件
+```js
+module.exports  = {
+ userName:"Jack",
+ sayHello: function () {
+     return 'Hello';
+ }
+}
+
+exports.userName = "Tom";
+exports.sayHello = function () {
+  return 'World';
+}
+```
+exports是将js中的对象输出，供其他文件调用
+接着建立一个server.js，建立我们的服务
+```js
+let user = require('./User');
+
+console.log(`userName:${user.userName}`);
+
+console.log(`I'm ${user.userName},I say ${user.sayHello()}`);
+
+let http = require('http');
+let url = require('url');
+let util = require('util');
+
+let server = http.createServer((req,res)=>{
+  res.statusCode = 200;
+
+  res.setHeader("Content-Type","text/plain; charset=utf-8");
+  res.end(util.inspect(url.parse(req.url)));
+});
+
+server.listen(3000,'127.0.0.1', ()=>{
+  console.log("服务器已经运行，请打开浏览,输入:http://127.0.0.1:3000/ 来进行访问.")
+});
+
+```
+我们可以通过request()去调用我们需要的模块
+server.js中http，url，util等这些事nodjs中自带的模块，具体用法可以查看nodejs官网
+写好了服务，别忘了通过listen去监听服务的端口
+接着cd进入服务所在的文件夹，通过命令启动服务
+```cmd
+node server.js
+```
+效果：
+![](https://www.github.com/BestErwin/img/raw/master/xiaoshujiang/1542122217976.png)
+这样我们nodejs的服务demo就完成了。
 ## 6.3、通过node加载静态资源
-## 6.4、搭建基于expres框架的运行环境
+### 6.3.1、加载html静态文件
+上一节我们我们演示了如何搭建服务和运行服务，一般我们的服务都是需要去访问资源的，那么这个demo就演示node.js如何加载静态资源。
+新建一个index.html静态文件；
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+<h2>hello,测试一下,能否访问到</h2>
+</body>
+</html>
+```
+接着新建一个server.js服务
+```js
+let http = require('http');
+let url = require('url');
+let util = require('util');
+let fs = require('fs');//node.js提供的文件访问模块
+
+let server = http.createServer((req,res)=>{
+  //截取url后面的文件名称，如index.html
+  var pathname = url.parse(req.url).pathname;
+  //把名称打印出来
+  console.log("file:"+pathname.substring(1))
+  //通过文件模块去加载静态问价
+  fs.readFile(pathname.substring(1), function (err,data) {
+      if(err){
+          res.writeHead(404,{
+            'Content-Type':'text/html'
+          });
+      }else{
+        res.writeHead(200,{
+          'Content-Type':'text/html'
+        });
+        //将文件信息写入
+        res.write(data.toString());
+      }
+      //最后监听请求结束
+      res.end();
+  });
+});
+
+server.listen(3000,'127.0.0.1', ()=>{
+  console.log("服务器已经运行，请打开浏览,输入:http://127.0.0.1:3000/ 来进行访问.")
+});
+```
+接着我们启动一下服务，在浏览器窗口输入http://127.0.0.1:3000/ index.html可以看到如下效果。
+控制台输出
+![](https://www.github.com/BestErwin/img/raw/master/xiaoshujiang/1542426701929.png)
+页面输出
+![](https://www.github.com/BestErwin/img/raw/master/xiaoshujiang/1542426719089.png)
+这样我们就成功的访问到静态资源了
+### 6.3.2、node.js调用第三方接口
+刚刚是node.js作为服务端去加载静态资源，那么node.js要作为客户端去
+调用第三方的接口获取数据，应该如何做呢？
+建一个client.js文件
+```js
+let http = require('http');//http模块
+let util = require('util') //util模块：主要用于打印输出结果
+
+//建议一个get请求，去请求第三方的接口
+http.get("http://www.imooc.com/u/card", function (res) {
+
+  /*
+  * res.on-->data用于监听接口返回数据，
+  * 数据不是一次加载出来的，而是多次，
+  * 因此需要用一个变量进行累加
+  * */
+    res.setEncoding('utf8');
+    let data = '';
+
+    res.on('data', function (chunk) {
+        data += chunk;
+    });
+    /*
+    * 监听结束，将数据转换成一个对象，便于我们使用
+    */
+    res.on('end', function () {
+        let result = JSON.parse(data);
+
+        console.log("result:"+util.inspect(result))
+
+    })
+});
+
+```
+启动client.js 看到返回结果
+![](https://www.github.com/BestErwin/img/raw/master/xiaoshujiang/1542428119764.png)
+
+## 6.4、搭建基于express框架的运行环境
+express是一个node.js的后台开发框架，底层也是封装了基础的server
+下面我们介绍如何搭建一个express的框架
+首先全局安装一个express-generator
+```cmd
+cnpm i -g express-generator
+```
+安装完检查一下，是否安装成功
+```cmd
+express --version
+```
+![](https://www.github.com/BestErwin/img/raw/master/xiaoshujiang/1542430061477.png)
+
+安装成功，进入项目文件夹构建一个express server
+```cmd
+express server
+```
+![](https://www.github.com/BestErwin/img/raw/master/xiaoshujiang/1542430176337.png)
+构建成功会看到项目中多了一个server文件夹
+结构如下
+![](https://www.github.com/BestErwin/img/raw/master/xiaoshujiang/20181117125907.png)
+加载依赖
+```cmd
+cnpm i
+```
+启动服务
+```cmd
+cnpm start 或者 node ./bin/www
+```
+浏览器输入http://127.0.0.1:3000/
+![](https://www.github.com/BestErwin/img/raw/master/xiaoshujiang/1542430520407.png)
+到此express框架就构建好了
+
+---
+# 7、MongoDB介绍
+## 7.1、window下mongodb环境搭建
+## 7.2、2linux平台下的搭建
+## 7.3、给mogodb创建用户
+## 7.4、mogodb基本语法
+## 7.5、表数据设计和插入
